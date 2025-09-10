@@ -21,4 +21,4 @@ app.include_router(stats.router, tags=["Stats"])
 app.include_router(logs.router, tags=["Logs"])
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="localhost", port=5000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=False)
