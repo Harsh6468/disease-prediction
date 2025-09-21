@@ -1,5 +1,5 @@
-export const API_BASE = "https://disease-prediction-n9fx.onrender.com";
-// export const API_BASE = "http://localhost:5000";
+// export const API_BASE = "https://disease-prediction-n9fx.onrender.com";
+export const API_BASE = "http://localhost:5000";
 
 export const navItems = [
     {

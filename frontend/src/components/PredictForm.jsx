@@ -10,6 +10,8 @@ export default function PredictForm() {
     const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
     const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
     const [isCorrect, setIsCorrect] = useState(null);
+    const [search, setSearch] = useState("");
+    const [activeGroup, setActiveGroup] = useState(FEATURE_GROUPS[0].name);
 
     // Toggle symptom
     const handleToggle = (name) => {
@@ -17,6 +19,7 @@ export default function PredictForm() {
             ...prev,
             [name]: prev[name] === 1 ? 0 : 1,
         }));
+        setSearch(""); // clear after choosing
     };
 
     // Count selected
@@ -27,14 +30,16 @@ export default function PredictForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (selectedCount === 0) return;
-        
+
         setIsLoading(true);
         setResult(null);
         setFeedbackSubmitted(false);
         setIsCorrect(null);
-        
+
         try {
-            const orderedFeatures = SYMPTOMS_ORDER.map(symptom => Number(features[symptom] || 0));
+            const orderedFeatures = SYMPTOMS_ORDER.map(
+                (symptom) => Number(features[symptom] || 0)
+            );
             const response = await predictDisease({ features: orderedFeatures });
             setResult(response);
         } catch (error) {
@@ -48,11 +53,11 @@ export default function PredictForm() {
     const handleFeedback = async (correct) => {
         setIsSubmittingFeedback(true);
         setIsCorrect(correct);
-        
+
         try {
             await updateStatus({
                 id: result.log_id,
-                value: correct?"correct":"incorrect",
+                value: correct ? "correct" : "incorrect",
             });
             setFeedbackSubmitted(true);
         } catch (error) {
@@ -68,10 +73,19 @@ export default function PredictForm() {
         setResult(null);
         setFeedbackSubmitted(false);
         setIsCorrect(null);
+        setSearch("");
+        setActiveGroup(FEATURE_GROUPS[0].name);
     };
 
+    // Suggestions for search bar
+    const filteredSuggestions = search
+        ? SYMPTOMS_ORDER.filter((symptom) =>
+            symptom.toLowerCase().includes(search.toLowerCase())
+          ).slice(0, 8) // show top 8
+        : [];
+
     return (
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8 relative">
             {/* Header */}
             <div className="text-center mb-6">
                 <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">
@@ -96,13 +110,68 @@ export default function PredictForm() {
                     <motion.div
                         className="h-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
                         initial={{ width: 0 }}
-                        animate={{ width: `${(selectedCount / totalCount) * 100}%` }}
+                        animate={{
+                            width: `${(selectedCount / totalCount) * 100}%`,
+                        }}
                         transition={{ duration: 0.5 }}
                     />
                 </div>
             </div>
 
-            {/* Symptom Groups - Only show when no result */}
+            {/* Search Bar with Suggestions */}
+            {!result && (
+                <div className="relative w-full sm:w-2/3 mx-auto">
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search symptoms..."
+                        className="w-full px-4 py-3 border rounded-lg dark:bg-gray-900 dark:border-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    {/* Suggestions Dropdown */}
+                    {filteredSuggestions.length > 0 && (
+                        <ul className="absolute z-20 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {filteredSuggestions.map((symptom, index) => (
+                                <li
+                                    key={index}
+                                    onClick={() => handleToggle(symptom)}
+                                    className={`px-4 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-700 ${
+                                        features[symptom] === 1
+                                            ? "bg-blue-500 text-white"
+                                            : "text-gray-800 dark:text-gray-200"
+                                    }`}
+                                >
+                                    {symptom}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+
+            {/* Navigation Tabs */}
+            {!result && (
+                <div className="flex flex-wrap gap-2">
+                    {FEATURE_GROUPS.map((group) => (
+                        <button
+                            key={group.name}
+                            type="button"
+                            onClick={() => setActiveGroup(group.name)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition 
+                                ${
+                                    activeGroup === group.name
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300 text-gray-700 hover:bg-blue-100 dark:hover:bg-gray-600"
+                                }`}
+                        >
+                            {group.name}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* Symptom Groups - Filtered */}
             <AnimatePresence>
                 {!result && (
                     <motion.div
@@ -112,43 +181,34 @@ export default function PredictForm() {
                         className="space-y-5 overflow-hidden"
                     >
                         <div className="max-h-[500px] overflow-y-auto pr-2 space-y-5">
-                            {FEATURE_GROUPS.map((group, idx) => (
-                                <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: idx * 0.1 }}
+                            {FEATURE_GROUPS.filter(
+                                (g) => g.name === activeGroup
+                            ).map((group) => (
+                                <div
+                                    key={group.name}
                                     className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden"
                                 >
-                                    <details className="group" open={idx === 0}>
-                                        <summary className="cursor-pointer px-5 py-4 font-semibold text-gray-800 dark:text-gray-200 flex items-center justify-between list-none">
-                                            <div className="flex items-center">
-                                                <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
-                                                    {group.icon}
-                                                </div>
-                                                <span>{group.name}</span>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full mr-3">
-                                                    {group.items.filter((f) => features[f] === 1).length} selected
-                                                </span>
-                                                <i className="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                            </div>
-                                        </summary>
-
-                                        {/* Feature Chips */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-5 border-t border-gray-100 dark:border-gray-700">
-                                            {group.items.map((f, i) => (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-5">
+                                        {group.items
+                                            .filter((f) =>
+                                                f.toLowerCase().includes(
+                                                    search.toLowerCase()
+                                                )
+                                            )
+                                            .map((f, i) => (
                                                 <motion.button
                                                     key={i}
                                                     type="button"
-                                                    onClick={() => handleToggle(f)}
+                                                    onClick={() =>
+                                                        handleToggle(f)
+                                                    }
                                                     whileHover={{ scale: 1.03 }}
                                                     whileTap={{ scale: 0.97 }}
                                                     className={`px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center
-                                                        ${features[f] === 1
-                                                            ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
-                                                            : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                                                        ${
+                                                            features[f] === 1
+                                                                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                                                                : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
                                                         }`}
                                                 >
                                                     {features[f] === 1 && (
@@ -157,16 +217,15 @@ export default function PredictForm() {
                                                     {f}
                                                 </motion.button>
                                             ))}
-                                        </div>
-                                    </details>
-                                </motion.div>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Submit Button - Only show when no result */}
+            {/* Submit Button */}
             <AnimatePresence>
                 {!result && (
                     <motion.div
@@ -181,9 +240,10 @@ export default function PredictForm() {
                             whileHover={{ scale: selectedCount > 0 ? 1.05 : 1 }}
                             whileTap={{ scale: selectedCount > 0 ? 0.95 : 1 }}
                             className={`px-8 py-4 text-lg font-bold rounded-xl shadow-lg transition flex items-center
-                                ${selectedCount > 0 && !isLoading
-                                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:shadow-xl"
-                                    : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                                ${
+                                    selectedCount > 0 && !isLoading
+                                        ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:shadow-xl"
+                                        : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                                 }`}
                         >
                             {isLoading ? (
@@ -202,7 +262,7 @@ export default function PredictForm() {
                 )}
             </AnimatePresence>
 
-            {/* Prediction Result */}
+            {/* Prediction Result + Feedback */}
             <AnimatePresence>
                 {result && (
                     <motion.div
@@ -272,11 +332,6 @@ export default function PredictForm() {
                                             No, Incorrect
                                         </motion.button>
                                     </div>
-                                    {isSubmittingFeedback && (
-                                        <p className="text-center text-gray-500 dark:text-gray-400 mt-3">
-                                            Submitting feedback...
-                                        </p>
-                                    )}
                                 </motion.div>
                             ) : (
                                 <motion.div
@@ -286,14 +341,30 @@ export default function PredictForm() {
                                     exit={{ opacity: 0, y: -20 }}
                                     className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700 text-center"
                                 >
-                                    <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isCorrect ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                                        <i className={`text-2xl ${isCorrect ? 'fas fa-check-circle text-green-500' : 'fas fa-times-circle text-red-500'}`}></i>
+                                    <div
+                                        className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                                            isCorrect
+                                                ? "bg-green-100 dark:bg-green-900/30"
+                                                : "bg-red-100 dark:bg-red-900/30"
+                                        }`}
+                                    >
+                                        <i
+                                            className={`text-2xl ${
+                                                isCorrect
+                                                    ? "fas fa-check-circle text-green-500"
+                                                    : "fas fa-times-circle text-red-500"
+                                            }`}
+                                        ></i>
                                     </div>
                                     <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                                        {isCorrect ? 'Thank you for your feedback!' : 'Thanks for helping us improve!'}
+                                        {isCorrect
+                                            ? "Thank you for your feedback!"
+                                            : "Thanks for helping us improve!"}
                                     </h4>
                                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                                        {isCorrect ? 'Your feedback helps improve our prediction accuracy.' : 'We appreciate you taking the time to provide feedback.'}
+                                        {isCorrect
+                                            ? "Your feedback helps improve our prediction accuracy."
+                                            : "We appreciate you taking the time to provide feedback."}
                                     </p>
                                     <motion.button
                                         type="button"
