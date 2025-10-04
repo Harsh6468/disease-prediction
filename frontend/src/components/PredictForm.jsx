@@ -14,7 +14,7 @@ export default function PredictForm() {
     const [activeGroup, setActiveGroup] = useState(FEATURE_GROUPS[0].name);
 
     // Get all symptom IDs for counting and searching
-    const allSymptomIds = FEATURE_GROUPS.flatMap(group => 
+    const allSymptomIds = FEATURE_GROUPS.flatMap(group =>
         group.items.map(item => item.id)
     );
 
@@ -45,7 +45,13 @@ export default function PredictForm() {
             const orderedFeatures = SYMPTOMS_ORDER.map(
                 (symptom) => Number(features[symptom] || 0)
             );
-            const response = await predictDisease({ features: orderedFeatures });
+            const selectedSymptoms = Object.entries(features)
+                .filter(([_, value]) => value === 1)
+                .reduce((acc, [key]) => {
+                    acc[key] = Number(1);
+                    return acc;
+                }, {});
+            const response = await predictDisease({ features: selectedSymptoms });
             setResult(response);
         } catch (error) {
             console.error("Prediction error:", error);
@@ -171,11 +177,10 @@ export default function PredictForm() {
                                         <li
                                             key={index}
                                             onClick={() => handleToggle(symptomId)}
-                                            className={`px-4 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-700 ${
-                                                features[symptomId] === 1
+                                            className={`px-4 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-700 ${features[symptomId] === 1
                                                     ? "bg-blue-500 text-white"
                                                     : "text-gray-800 dark:text-gray-200"
-                                            }`}
+                                                }`}
                                         >
                                             <div>
                                                 <div className="font-medium">{symptom.commonName}</div>
@@ -198,10 +203,9 @@ export default function PredictForm() {
                             type="button"
                             onClick={() => setActiveGroup(group.name)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition 
-                                ${
-                                    activeGroup === group.name
-                                        ? "bg-blue-600 text-white"
-                                        : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300 text-gray-700 hover:bg-blue-100 dark:hover:bg-gray-600"
+                                ${activeGroup === group.name
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300 text-gray-700 hover:bg-blue-100 dark:hover:bg-gray-600"
                                 }`}
                         >
                             {group.icon} {group.name}
@@ -243,10 +247,9 @@ export default function PredictForm() {
                                                     whileHover={{ scale: 1.03 }}
                                                     whileTap={{ scale: 0.97 }}
                                                     className={`py-3 rounded-xl text-sm font-medium transition-all flex flex-col items-center justify-center text-center
-                                                        ${
-                                                            features[symptom.id] === 1
-                                                                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
-                                                                : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                                                        ${features[symptom.id] === 1
+                                                            ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                                                            : "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
                                                         }`}
                                                 >
                                                     {features[symptom.id] === 1 && (
@@ -278,10 +281,9 @@ export default function PredictForm() {
                             whileHover={{ scale: selectedCount > 0 ? 1.05 : 1 }}
                             whileTap={{ scale: selectedCount > 0 ? 0.95 : 1 }}
                             className={`px-8 py-4 text-lg font-bold rounded-xl shadow-lg transition flex items-center
-                                ${
-                                    selectedCount > 0 && !isLoading
-                                        ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:shadow-xl"
-                                        : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                                ${selectedCount > 0 && !isLoading
+                                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:shadow-xl"
+                                    : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                                 }`}
                         >
                             {isLoading ? (
@@ -399,18 +401,16 @@ export default function PredictForm() {
                                     className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700 text-center"
                                 >
                                     <div
-                                        className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                                            isCorrect
+                                        className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isCorrect
                                                 ? "bg-green-100 dark:bg-green-900/30"
                                                 : "bg-red-100 dark:bg-red-900/30"
-                                        }`}
+                                            }`}
                                     >
                                         <i
-                                            className={`text-2xl ${
-                                                isCorrect
+                                            className={`text-2xl ${isCorrect
                                                     ? "fas fa-check-circle text-green-500"
                                                     : "fas fa-times-circle text-red-500"
-                                            }`}
+                                                }`}
                                         ></i>
                                     </div>
                                     <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">

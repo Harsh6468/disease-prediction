@@ -1,6 +1,7 @@
 import { API_BASE } from "../constants";
 
 export const predictDisease = async (features) => {
+    console.log(features)
     const res = await fetch(`${API_BASE}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,7 +29,9 @@ export const updateStatus = async (updateData) => {
 
 export const fetchLogs = async () => {
     const res = await fetch(`${API_BASE}/get-logs`);
-    return res.json();
+    const data = res.json();
+    console.log(data)
+    return data;
 };
 
 export async function getStats() {

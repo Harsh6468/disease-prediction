@@ -11,7 +11,7 @@ export default function Logs() {
     useEffect(() => {
         setIsLoading(true);
         fetchLogs()
-            .then((data) => setLogs(data.logs))
+            .then((data) => setLogs(data))
             .finally(() => setIsLoading(false));
     }, []);
 
@@ -104,7 +104,7 @@ export default function Logs() {
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600">
-                                    ID
+                                    Sr. No.
                                 </th>
                                 <th className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600">
                                     Symptoms
@@ -121,16 +121,16 @@ export default function Logs() {
                             </tr>
                         </thead>
                         <tbody>
-                            {logs.map((log) => {
+                            {logs.map((log, index) => {
                                 const activeSymptoms = getActiveSymptoms(log.features);
                                 return (
                                     <tr 
-                                        key={log.id} 
+                                        key={index+1} 
                                         className="hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 cursor-pointer"
                                         onClick={() => openModal(log)}
                                     >
                                         <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">
-                                            {log.id}
+                                            {index+1}
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex flex-col space-y-2">
@@ -227,9 +227,6 @@ export default function Logs() {
                                         <i className="fas fa-times text-xl"></i>
                                     </button>
                                 </div>
-                                <p className="text-blue-100 text-sm mt-1">
-                                    ID: {selectedLog.id}
-                                </p>
                             </div>
 
                             {/* Modal Body */}
